@@ -3,45 +3,32 @@ pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
 
-// only valid for x ≤ 10e8
-// https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.569.8009&rep=rep1&type=pdf
 contract FuzzyMath {
-	function fraxExp(uint x, uint8 a, uint8 b) public pure returns (uint est)  {
-		// check for potential overflow 
-        // require(
-		// 	a*xBound <= 78,
-		// 	"uint256 overflow risk: a*xBound <= 78; where xBound = ceil( log2(x) )"
-		// );
-        require(b > 1, "why are you using this library..");
+    function fraxExp(uint x, uint8 a, uint8 b) external pure returns (uint est)  {
+        // constraints
+        require(b < 10, "need exponent denominator b < 10");
+        require(a < 10, "need exponent numerator a < 10");
+        require(x < 1000000000, "maximum input is 1e9");
 
-        // shortcut this nonsense
-        if (a % b == 0) {
-            return x ** (a / b);
-        }
+        if (a % b == 0) return x ** (a / b); // shortcut this nonsense
+        if (b % a == 0) (a, b) = (1, b / a); // simplify
+        x = (a > 1) ? x**a : x;              // calculate subtotal with numerator        
 
-        // calculate subtotal with numerator        
-        x = (a > 1) ? x**a : x; 
-
-        // calculate b-root of subtotal
-        if (b == 2) { 
-            est = sqrt(x); // efficient shortcut
-        } else {
-            uint b2 = b - 1;
-            uint z = (x + 1) / 2; // what's a better guess? too large causes overflow (maybe dependent on a)
+        // calculate b-root of subtotal with generalized Babylonian Method
+        // citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.569.8009&rep=rep1&type=pdf
+        uint z = (x + 1) / 2; // intial guess, could be improved
+        if (b == 2) {         // shortcut b=2 case
             est = x;
             while (z < est) {
-                est = z;
-                z = (x / z**b2  + b2 * z) / b;
+                (est, z) = (z, (x / z + z) / 2);
             }
-        }
-	}
-
-    function sqrt(uint x) pure internal returns (uint y) {
-        uint z = (x + 1) / 2;
-        y = x;
-        while (z < y) {
-            y = z;
-            z = (x / z + z) / 2;
+        } else {
+            uint b2 = b - 1;
+            z = (z < 1000000000) ? z : 1000000000; // potentially tighter guess, answer bounded by 10e9
+            est = x;
+            while (z < est) {
+                (est, z) = (z, (x / z**b2  + b2 * z) / b);
+            }
         }
     }
 }
