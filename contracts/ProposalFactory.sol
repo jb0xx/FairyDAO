@@ -20,18 +20,16 @@ contract ProposalFactory {
 
     function _newProposal(
         string memory _title,
-        IPFS memory _description,
+        // IPFS memory _description,
         address memory _author,
         address memory _DAO,
-        address memory _token,
     ) internal returns (address) {
         // TODO: get IPFS hash after storing description on IPFS
         Proposal instance = new Proposal(
-            _title,
-            _description,
             _author,
+            _title,
+            // _description,
             _DAO,
-            _token,
         );
         emit Publish(
             address(instance),
