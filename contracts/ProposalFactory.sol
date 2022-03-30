@@ -5,12 +5,6 @@ pragma solidity 0.8.10;
 
 /// @title The ProposalFactory allows for the creation of Proposals for a DAO
 contract ProposalFactory {
-    address immutable HUB;
-
-    constructor(address hub) {
-        HUB = hub;
-    }
-
     // Emit details about the new Proposal
     event Publish(
         address proposal,
@@ -19,10 +13,12 @@ contract ProposalFactory {
     );
 
     function _newProposal(
+        address memory _author,
         string memory _title,
         // IPFS memory _description,
-        address memory _author,
         address memory _DAO,
+        uint memory _expNumerator,
+        uint memory _expDenominator
     ) internal returns (address) {
         // TODO: get IPFS hash after storing description on IPFS
         Proposal instance = new Proposal(
@@ -30,6 +26,8 @@ contract ProposalFactory {
             _title,
             // _description,
             _DAO,
+            _expNumerator,
+            _expDenominator
         );
         emit Publish(
             address(instance),

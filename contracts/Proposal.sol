@@ -3,46 +3,87 @@ pragma solidity ^0.8.0;
 
 import {IFairyDAO} from "./interfaces/IFairyDAO.sol";
 
-
+// Proposal is a token-agnostic vote and vote
 contract Proposal {
+    // voting curve parameters for this proposal
+    struct VotingCurve {
+        a uint8;   // numerator of the exponent
+        b uint8;   // denominator of the exponent
+    }
+
+    struct VoteDetails {
+        bool direction;
+        uint128 stake;
+        uint32 weight; // could technically cache these conversions on a mapping
+        bool voted;    // tracks whether an address has voted
+    }
+
+    immutable address DAO;
+    immutable address PROPOSER;
     string title;
     // TODO: implement IPFS description;
-    immutable address AUTHOR;
-    immutable address DAO;
+    mapping(address => VotingDetails) votingDetails;
+    uint totalStaked;
+    VotingCurve curve;
 
-    // We could consolidate these two mappings into a struct to save space
-    // since vote weight is bounded by uint32.
-    // Also, we need some way of locking funds upon voting, so users can't
-    // just vote and transfer their funds to another user
-    mapping (address, bool) votes;
-    mapping (address, uint256) voteWeights;
-    
-    modifier onlyAuthor() {
-        require(msg.sender == AUTHOR);
+    modifier onlyProposer() {
+        require(msg.sender == PROPOSER);
         _;
     }
     
-    modifier onlyMembers() {
-        hostDAO._validateAddressIsWhitelisted(msg.sender);
+    modifier onlyMember() {
+        require(IFairyDAO(DAO)._isMember(msg.sender));
+        _;
+    }
+
+    modifier notVoted() {
+        require(!votingDetails[msg.sender].voted);
         _;
     }
 
     constructor(
+        address memory _proposer,
         string memory _title,
         // IPFS memory _description,
-        address memory _author,
         address memory _DAO,
+        uint memory _expNumerator,
+        uint memory _expDenominator
     ) {
-        // TODO: set Author (lens user) from address (or is it hub and id?)
-        // TODO: logic to update description
+        // TODO: logic to set description
+        DAO = _DAO;
+        PROPOSER = _proposer;
         title = _title;
-        hostDAO = DAO(_DAOAddress);
-        token = ERC20(_tokenAddress);
+        curve = VotingCurve(_expNumerator, _expDenominator);
     }
 
-    function vote(bool direction) public returns (uint power) onlyMembers {
+    // Casts a vote by the caller with the given direction and stake.
+    // As the Proposal Contract is token-agnostic, all stakes are interpreted
+    // as whole token values. Any pre-processing to account for ERC20 amounts
+    // must occur at the DAO level. This includes checking available balances.
+    function vote(
+        bool memory _direction,
+        uint memory _stake
+    ) public onlyMember notVoted {
+        // TODO: check whether the user has the specified stake available in DAO commitments
+        votingDetails[msg.sender].direction = _direction;
+        votingDetails[msg.sender].stake = _stake;
+        // TODO: calculate vote weight using FuzzyMath and set vote weight
+        totalStaked += _stake;
+        votingDetails[msg.sender].voted = true;
     }
 
-    // function _setDescription(IPFS Hash?) internal onlyAuthor {
+    // gets the voting power based on stake
+    function getVotePower(uint memory _stake) pure returns (uint256) {
+        uint256 balance = _addressBalance(msg.sender);
+        // determine vote power from balance
+        // NOTE: FollowNFT.getPowerByBlockNumber() is an option
+    }
+
+    // gets the total funds locked for voting on this proposal
+    function totalStaked() public view returns (uint256) {
+        return totalStaked;
+    }
+
+    // function _setDescription(IPFS Hash?) internal onlyProposer {
     // }
 }

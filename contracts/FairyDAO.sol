@@ -30,6 +30,10 @@ contract FairyDAO is IFairyDAO, ProposalFactory {
         b uint8;   // denominator of the exponent
     }
 
+    address immutable TOKEN;
+    address immutable HUB;
+    address immutable FOLLOW_NFT;
+
     string name;
     // TODO: implement IPFS description; (lens probs has clues)
     uint minCommitment;     // minimum commitment required of members to join this DAO, represented in the ERC20's decimal notation
@@ -37,11 +41,6 @@ contract FairyDAO is IFairyDAO, ProposalFactory {
     mapping(address => Funds) addressFunds;
     mapping(uint => address) proposals;
     VotingCurve curve;
-
-    address immutable TOKEN;
-    address immutable HUB;
-    address immutable FOLLOW_NFT;
-
 
     // checks whether the caller is following the DAO on the Lens Hub 
     modifier onlyMember() {
