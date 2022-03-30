@@ -17,13 +17,17 @@ contract FairyDAOFactory {
         string memory _name,
         // IPFS memory _description,
         address memory _token,
-        address memory _hub
+        address memory _hub,
+        uint memory _expNumerator,
+        uint memory _expDenominator
     ) public returns (address) {
         // create this DAO as a user in the lens hub
         FairyDAO instance = new FairyDAO(
             _name,
             _hub,
-            _token
+            _token,
+            _expNumerator,
+            _expDenominator
         );
         address(instance)
 
